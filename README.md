@@ -150,6 +150,45 @@ docker stop booknest && docker rm booknest
 
 ## CI/CD and Deployment
 
-<!-- Placeholder for future CI/CD pipeline integration -->
-*This section will detail the deployment pipeline using GitHub Actions, Amazon ECR, Amazon EKS, and Argo CD for GitOps-driven continuous delivery.*
+BookNest uses a GitOps delivery pipeline. A push to `main` builds, tests, and publishes an image, then updates a separate GitOps repository. Argo CD watches that repository and reconciles the cluster toward the desired state.
+
+### Architecture Flow
+
+```text
+Developer
+   │  git push to main
+   ▼
+GitHub (booknest-app)
+   │  triggers workflow
+   ▼
+GitHub Actions
+   ├─ test ...................... pytest
+   ├─ build-and-push ............ image tagged with short git SHA ──▶ Amazon ECR
+   └─ update-gitops ............. updates image tag ─────────────────▶ booknest-gitops repo
+                                                                              │
+                                                                              ▼
+                                                                          Argo CD
+                                                                              │  sync (prune + selfHeal)
+                                                                              ▼
+                                                                          Amazon EKS
+                                                                          namespace: booknest
+```
+
+- **AWS authentication:** GitHub OIDC via `AWS_ROLE_ARN`; no long-lived AWS access keys are stored.
+- **Image tags:** short git SHA (`${GITHUB_SHA::7}`), so every deployment is traceable and immutable.
+- **GitOps source of truth:** `prathameshpp-007/booknest-gitops`, path `k8s`.
+
+### Setup Checklist
+
+1. **Create the ECR repository** (for example `booknest`) in the target AWS region.
+2. **Configure GitHub OIDC in AWS:** add GitHub as an IAM OIDC provider, then create an IAM role whose trust policy is restricted to this repository and the `main` branch. Grant it permission to push to the ECR repository. Store the role ARN as the `AWS_ROLE_ARN` GitHub secret.
+3. **Set GitHub Actions variables** (repository settings → Variables):
+   - `AWS_REGION` — for example `us-east-1`
+   - `ECR_REPOSITORY` — for example `booknest`
+4. **Create a GitOps token:** generate a fine-grained token or PAT with write access to `prathameshpp-007/booknest-gitops` and store it as the `GITOPS_TOKEN` GitHub secret.
+5. **Create the GitOps repository:** copy the contents of `gitops/k8s/` into the `k8s/` directory of `booknest-gitops`. Replace the `ACCOUNT_ID`, `REGION`, and `INITIAL` placeholders in `deployment.yaml` with real values, or let the first successful pipeline run set the image tag.
+6. **Install Argo CD on the EKS cluster** and apply `gitops/argocd/application.yaml` (update `repoURL` if you fork the GitOps repository). The Application targets the `booknest` namespace with automated sync, pruning, self-healing, and namespace creation enabled.
+7. **Push to `main`** to trigger the pipeline. Follow the run in the GitHub Actions tab; Argo CD will roll out the new image once the GitOps repository is updated.
+
+> The `gitops/` folder is a staging area for the separate GitOps repository. The existing `k8s/` folder and `kind-config.yaml` remain untouched for local kind development.
 
