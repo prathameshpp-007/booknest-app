@@ -16,18 +16,15 @@ spec:
     spec:
       containers:
         - name: booknest
-          image: booknest-app:v1
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/prathameshpp-007/booknest-app:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
-          env:
-            - name: APP_VERSION
-              value: "1.0.0"
           readinessProbe:
             httpGet:
               path: /health
               port: 5000
-            initialDelaySeconds: 3
+            initialDelaySeconds: 5
             periodSeconds: 5
           livenessProbe:
             httpGet:
