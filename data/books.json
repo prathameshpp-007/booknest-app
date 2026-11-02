@@ -1,0 +1,73 @@
+[
+  {
+    "id": 1,
+    "title": "The Pragmatic Programmer",
+    "author": "Andrew Hunt, David Thomas",
+    "category": "Software Engineering",
+    "price": 44.99
+  },
+  {
+    "id": 2,
+    "title": "Designing Data-Intensive Applications",
+    "author": "Martin Kleppmann",
+    "category": "Software Engineering",
+    "price": 49.95
+  },
+  {
+    "id": 3,
+    "title": "Clean Code",
+    "author": "Robert C. Martin",
+    "category": "Software Engineering",
+    "price": 37.50
+  },
+  {
+    "id": 4,
+    "title": "Site Reliability Engineering",
+    "author": "Betsy Beyer, Chris Jones, Niall Richard Murphy",
+    "category": "Cloud & DevOps",
+    "price": 45.00
+  },
+  {
+    "id": 5,
+    "title": "The Phoenix Project",
+    "author": "Gene Kim, Kevin Behr, George Spafford",
+    "category": "Cloud & DevOps",
+    "price": 24.99
+  },
+  {
+    "id": 6,
+    "title": "Cosmos",
+    "author": "Carl Sagan",
+    "category": "Science & Nature",
+    "price": 18.99
+  },
+  {
+    "id": 7,
+    "title": "Brief Answers to the Big Questions",
+    "author": "Stephen Hawking",
+    "category": "Science & Nature",
+    "price": 16.50
+  },
+  {
+    "id": 8,
+    "title": "Dune",
+    "author": "Frank Herbert",
+    "category": "Fiction & Literature",
+    "price": 21.00
+  },
+  {
+    "id": 9,
+    "title": "Project Hail Mary",
+    "author": "Andy Weir",
+    "category": "Fiction & Literature",
+    "price": 22.95
+  },
+  {
+    "id": 10,
+    "title": "Atomic Habits",
+    "author": "James Clear",
+    "category": "Business & Leadership",
+    "price": 27.00
+  }
+]
+

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookNest - Online Book Catalog</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <!-- Top Navigation & Brand Header -->
+  <header class="site-header">
+    <div class="container header-container">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <!-- ======================================================== -->
+        <!-- CI/CD DEMO TARGET: Main Application Heading              -->
+        <!-- Modify the heading below to verify CI/CD deployment flows -->
+        <!-- ======================================================== -->
+        <h1 class="brand-title">BookNest</h1>
+      </div>
+      <a href="#add-book-section" class="btn btn-outline-white">+ Add Book</a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container hero-content">
+      <h2 class="hero-title">Your Curated Online Book Catalog</h2>
+      <p class="hero-subtitle">
+        Discover, search, and manage books across technology, science, literature, and leadership.
+      </p>
+    </div>
+  </section>
+
+  <!-- Main Content Container -->
+  <main class="container main-content">
+
+    <!-- Notification Toast / Banner -->
+    <div id="notification-banner" class="notification-banner hidden" role="alert"></div>
+
+    <!-- Controls: Search & Category Filter -->
+    <section class="controls-panel card">
+      <div class="controls-grid">
+        <div class="search-box">
+          <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Search by title or author..."
+            autocomplete="off"
+            aria-label="Search books"
+          >
+          <button id="clear-search-btn" class="clear-btn hidden" title="Clear search" aria-label="Clear search">&times;</button>
+        </div>
+
+        <div class="filter-box">
+          <label for="category-filter" class="filter-label">Category:</label>
+          <select id="category-filter" aria-label="Filter by category">
+            <option value="">All Categories</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="catalog-status">
+        <span id="results-count" class="results-count">Loading catalog...</span>
+      </div>
+    </section>
+
+    <!-- Book Grid Container -->
+    <section class="catalog-section" aria-label="Book Catalog">
+      <div id="book-grid" class="book-grid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state hidden">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <line x1="8" y1="11" x2="14" y2="11"></line>
+        </svg>
+        <h3>No books found</h3>
+        <p>No titles match your current search or category filter. Try clearing your search.</p>
+        <button id="reset-filters-btn" class="btn btn-secondary">Reset Filters</button>
+      </div>
+    </section>
+
+    <!-- Add Book Form Section -->
+    <section id="add-book-section" class="form-section card">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <h2>Add a New Book</h2>
+        </div>
+        <p class="section-subtitle">Fill in the book details to expand the catalog.</p>
+      </div>
+
+      <form id="add-book-form" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="book-title">Title <span class="required">*</span></label>
+            <input
+              type="text"
+              id="book-title"
+              name="title"
+              placeholder="e.g. Designing Data-Intensive Applications"
+              required
+            >
+            <span class="field-error" id="title-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="book-author">Author <span class="required">*</span></label>
+            <input
+              type="text"
+              id="book-author"
+              name="author"
+              placeholder="e.g. Martin Kleppmann"
+              required
+            >
+            <span class="field-error" id="author-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="book-category">Category <span class="required">*</span></label>
+            <input
+              type="text"
+              id="book-category"
+              name="category"
+              list="category-suggestions"
+              placeholder="e.g. Software Engineering"
+              required
+            >
+            <datalist id="category-suggestions"></datalist>
+            <span class="field-error" id="category-error"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="book-price">Price ($ USD) <span class="required">*</span></label>
+            <input
+              type="number"
+              id="book-price"
+              name="price"
+              step="0.01"
+              min="0.01"
+              placeholder="e.g. 42.99"
+              required
+            >
+            <span class="field-error" id="price-error"></span>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="submit-btn" class="btn btn-primary">
+            <span class="btn-text">Add Book</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+  </main>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">Delete Book</h3>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong id="delete-book-title"></strong> from the catalog?</p>
+        <p class="modal-warning">This action cannot be undone.</p>
+      </div>
+      <div class="modal-actions">
+        <button id="cancel-delete-btn" class="btn btn-secondary">Cancel</button>
+        <button id="confirm-delete-btn" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <p class="footer-brand">&copy; 2026 BookNest &bull; Online Book Catalog</p>
+      <div class="footer-meta">
+        <span class="version-badge">v{{ app_version }}</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
+
