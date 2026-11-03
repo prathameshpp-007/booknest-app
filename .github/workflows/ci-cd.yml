@@ -1,17 +1,19 @@
 
 name: BookNest CI/CD
 
+
 on:
   push:
     branches:
       - main
     paths-ignore:
-  - 'README.md'
-  - 'k8s/**'
+      - 'README.md'
+      - 'k8s/**'
 
   pull_request:
     branches:
       - main
+
 
 permissions:
   contents: read
