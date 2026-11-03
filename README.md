@@ -192,3 +192,4 @@ GitHub Actions
 
 > The `gitops/` folder is a staging area for the separate GitOps repository. The existing `k8s/` folder and `kind-config.yaml` remain untouched for local kind development.
 
+
