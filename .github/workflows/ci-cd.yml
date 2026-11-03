@@ -6,9 +6,8 @@ on:
     branches:
       - main
     paths-ignore:
-      - 'README.md'
-      - 'k8s/**'
-      - '.github/workflows/**'
+  - 'README.md'
+  - 'k8s/**'
 
   pull_request:
     branches:
