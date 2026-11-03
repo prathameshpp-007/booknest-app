@@ -1,11 +1,18 @@
 import pytest
+
 from app import create_app
 
 
 @pytest.fixture
-def client():
+def orders_file(tmp_path):
+    """Isolated orders file so tests never touch the real data directory."""
+    return str(tmp_path / "orders.json")
+
+
+@pytest.fixture
+def client(orders_file):
     """Test client fixture with fresh in-memory data for each test."""
-    app = create_app({"TESTING": True})
+    app = create_app({"TESTING": True, "ORDERS_FILE": orders_file})
     app.catalog.reload()
     with app.test_client() as client:
         yield client
@@ -223,3 +230,296 @@ def test_delete_missing_book(client):
     assert response.status_code == 404
     assert response.is_json
     assert "error" in response.get_json()
+
+
+# ===========================================================================
+# Shopping cart, checkout and order management
+# ===========================================================================
+def test_cart_page_loads(client):
+    """GET /cart should render the shopping cart page."""
+    response = client.get("/cart")
+    assert response.status_code == 200
+    assert b"Your Cart" in response.data
+    assert b"cart.js" in response.data
+
+
+def test_checkout_page_loads(client):
+    """GET /checkout should render the checkout page."""
+    response = client.get("/checkout")
+    assert response.status_code == 200
+    assert b"Checkout" in response.data
+    assert b"Demo checkout only" in response.data
+
+
+def test_orders_page_loads_empty(client):
+    """GET /orders should render the empty order history state."""
+    response = client.get("/orders")
+    assert response.status_code == 200
+    assert b"My Orders" in response.data
+    assert b"No orders yet" in response.data
+
+
+def test_cart_starts_empty(client):
+    """GET /api/cart should return an empty cart initially."""
+    response = client.get("/api/cart")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["items"] == []
+    assert data["count"] == 0
+    assert data["subtotal"] == 0
+    assert data["total"] == 0
+
+
+def test_add_to_cart(client):
+    """POST /api/cart should add a book and return calculated totals."""
+    response = client.post("/api/cart", json={"book_id": 1, "quantity": 1})
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data["count"] == 1
+    assert len(data["items"]) == 1
+    assert data["items"][0]["book_id"] == 1
+    assert data["items"][0]["title"] == "The Pragmatic Programmer"
+    assert data["subtotal"] == 44.99
+    assert data["total"] == 44.99
+
+
+def test_add_to_cart_increments_quantity(client):
+    """Adding the same book twice should increase its quantity."""
+    client.post("/api/cart", json={"book_id": 1})
+    response = client.post("/api/cart", json={"book_id": 1})
+    assert response.status_code == 201
+    data = response.get_json()
+    assert data["count"] == 2
+    assert data["items"][0]["quantity"] == 2
+    assert data["total"] == 89.98
+
+
+def test_add_multiple_books_cart_totals(client):
+    """Cart subtotal should sum line totals across different books."""
+    client.post("/api/cart", json={"book_id": 3, "quantity": 2})  # 37.50 x2
+    response = client.post("/api/cart", json={"book_id": 6, "quantity": 1})  # 18.99
+    data = response.get_json()
+    assert data["count"] == 3
+    assert data["subtotal"] == 93.99
+    assert data["total"] == 93.99
+
+
+def test_add_nonexistent_book_to_cart(client):
+    """POST /api/cart with an unknown book should return 404."""
+    response = client.post("/api/cart", json={"book_id": 99999})
+    assert response.status_code == 404
+    assert "not found" in response.get_json()["error"].lower()
+
+
+def test_add_to_cart_invalid_payload(client):
+    """POST /api/cart should reject missing or invalid book_id/quantity."""
+    assert client.post("/api/cart", json={}).status_code == 400
+    assert client.post("/api/cart", json={"book_id": "abc"}).status_code == 400
+    assert client.post("/api/cart", json={"book_id": 1, "quantity": 0}).status_code == 400
+    assert client.post("/api/cart", json={"book_id": 1, "quantity": 500}).status_code == 400
+
+
+def test_update_cart_quantity(client):
+    """PATCH /api/cart/<id> should update quantity and totals."""
+    client.post("/api/cart", json={"book_id": 1})
+    response = client.patch("/api/cart/1", json={"quantity": 3})
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["items"][0]["quantity"] == 3
+    assert data["count"] == 3
+    assert data["total"] == 134.97
+
+
+def test_update_cart_quantity_validation(client):
+    """PATCH /api/cart/<id> should reject invalid quantities and missing items."""
+    client.post("/api/cart", json={"book_id": 1})
+    assert client.patch("/api/cart/1", json={"quantity": 0}).status_code == 400
+    assert client.patch("/api/cart/1", json={"quantity": "abc"}).status_code == 400
+    assert client.patch("/api/cart/1", json={}).status_code == 400
+    assert client.patch("/api/cart/2", json={"quantity": 2}).status_code == 404
+
+
+def test_remove_cart_item(client):
+    """DELETE /api/cart/<id> should remove a book from the cart."""
+    client.post("/api/cart", json={"book_id": 1})
+    client.post("/api/cart", json={"book_id": 2})
+    response = client.delete("/api/cart/1")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["count"] == 1
+    assert data["items"][0]["book_id"] == 2
+
+    # Removing again should 404
+    assert client.delete("/api/cart/1").status_code == 404
+
+
+def test_clear_cart(client):
+    """DELETE /api/cart should remove every item."""
+    client.post("/api/cart", json={"book_id": 1})
+    client.post("/api/cart", json={"book_id": 2})
+    response = client.delete("/api/cart")
+    assert response.status_code == 200
+    assert response.get_json()["items"] == []
+    assert client.get("/api/cart").get_json()["count"] == 0
+
+
+def test_buy_now_flow_simulation(client):
+    """Buy Now uses POST /api/cart then navigates to /checkout."""
+    add_response = client.post("/api/cart", json={"book_id": 2, "quantity": 1})
+    assert add_response.status_code == 201
+    assert add_response.get_json()["count"] == 1
+
+    checkout_page = client.get("/checkout")
+    assert checkout_page.status_code == 200
+    assert b"checkout.js" in checkout_page.data
+
+
+def test_checkout_requires_cart(client):
+    """POST /api/checkout with an empty cart should return 400."""
+    response = client.post(
+        "/api/checkout",
+        json={
+            "name": "Jane Doe",
+            "email": "jane@example.com",
+            "phone": "5551234567",
+            "address": "123 Book Street, Reading, CA 90210",
+        },
+    )
+    assert response.status_code == 400
+    assert "empty" in response.get_json()["error"].lower()
+
+
+def test_checkout_validates_required_fields(client):
+    """POST /api/checkout should report every missing required field."""
+    client.post("/api/cart", json={"book_id": 1})
+    response = client.post("/api/checkout", json={})
+    assert response.status_code == 400
+    data = response.get_json()
+    assert set(data["fields"].keys()) == {"name", "email", "phone", "address"}
+
+
+def test_checkout_validates_email_and_phone(client):
+    """POST /api/checkout should reject malformed email and phone values."""
+    client.post("/api/cart", json={"book_id": 1})
+    response = client.post(
+        "/api/checkout",
+        json={
+            "name": "Jane Doe",
+            "email": "not-an-email",
+            "phone": "12",
+            "address": "123 Book Street, Reading",
+        },
+    )
+    assert response.status_code == 400
+    fields = response.get_json()["fields"]
+    assert "email" in fields
+    assert "phone" in fields
+
+
+def test_checkout_creates_order_and_clears_cart(client):
+    """A valid checkout should persist an unpaid demo order and empty the cart."""
+    client.post("/api/cart", json={"book_id": 1, "quantity": 2})
+    client.post("/api/cart", json={"book_id": 6})
+
+    response = client.post(
+        "/api/checkout",
+        json={
+            "name": "Jane Doe",
+            "email": "jane@example.com",
+            "phone": "+1 555 123 4567",
+            "address": "123 Book Street, Reading, CA 90210",
+        },
+    )
+    assert response.status_code == 201
+    data = response.get_json()
+    order = data["order"]
+
+    assert order["order_id"].startswith("BN-")
+    assert order["status"] == "unpaid"
+    assert order["payment"]["paid"] is False
+    assert order["payment"]["provider"] == "demo"
+    assert order["currency"] == "USD"
+    assert order["customer"]["email"] == "jane@example.com"
+    assert len(order["items"]) == 2
+    assert order["total"] == 108.97
+    assert "card" not in str(order).lower()
+    assert "cvv" not in str(order).lower()
+    assert data["redirect_url"].startswith(f"/orders/{order['order_id']}")
+
+    # Cart is cleared after checkout
+    assert client.get("/api/cart").get_json()["count"] == 0
+
+    # Order appears in history
+    history = client.get("/api/orders").get_json()
+    assert len(history) == 1
+    assert history[0]["order_id"] == order["order_id"]
+
+    # Confirmation page renders
+    page = client.get(f"/orders/{order['order_id']}?confirmed=1")
+    assert page.status_code == 200
+    assert order["order_id"].encode() in page.data
+    assert b"Unpaid" in page.data
+
+
+def test_order_ids_are_unique(client):
+    """Each checkout should generate a distinct order ID."""
+    customer = {
+        "name": "Jane Doe",
+        "email": "jane@example.com",
+        "phone": "5551234567",
+        "address": "123 Book Street, Reading",
+    }
+    ids = []
+    for _ in range(3):
+        client.post("/api/cart", json={"book_id": 1})
+        response = client.post("/api/checkout", json=customer)
+        assert response.status_code == 201
+        ids.append(response.get_json()["order_id"])
+
+    assert len(set(ids)) == 3
+
+
+def test_order_not_found(client):
+    """GET /orders/<unknown> and /api/orders/<unknown> should return 404."""
+    assert client.get("/orders/BN-DOES-NOT-EXIST").status_code == 404
+    assert client.get("/api/orders/BN-DOES-NOT-EXIST").status_code == 404
+
+
+def test_orders_persist_across_app_restart(orders_file):
+    """Orders written by one app instance should load in a new instance."""
+    customer = {
+        "name": "Persistent Reader",
+        "email": "reader@example.com",
+        "phone": "5559876543",
+        "address": "42 Library Lane, Booktown",
+    }
+
+    first_app = create_app({"TESTING": True, "ORDERS_FILE": orders_file})
+    with first_app.test_client() as c:
+        c.post("/api/cart", json={"book_id": 5})
+        created = c.post("/api/checkout", json=customer).get_json()["order"]
+
+    second_app = create_app({"TESTING": True, "ORDERS_FILE": orders_file})
+    with second_app.test_client() as c:
+        history = c.get("/api/orders").get_json()
+        assert len(history) == 1
+        assert history[0]["order_id"] == created["order_id"]
+        assert c.get(f"/api/orders/{created['order_id']}").status_code == 200
+
+
+def test_checkout_removes_deleted_books_from_cart(client):
+    """If a book is deleted from the catalog, checkout should drop it safely."""
+    client.post("/api/cart", json={"book_id": 1})
+    client.delete("/api/books/1")
+
+    response = client.post(
+        "/api/checkout",
+        json={
+            "name": "Jane Doe",
+            "email": "jane@example.com",
+            "phone": "5551234567",
+            "address": "123 Book Street, Reading",
+        },
+    )
+    # The only cart item was deleted, so checkout should reject an empty cart.
+    assert response.status_code == 400

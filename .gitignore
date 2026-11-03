@@ -10,3 +10,6 @@ __pycache__/
 *.log
 *.bak
 *.tmp
+
+# Runtime order history (created automatically)
+data/orders.json

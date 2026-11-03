@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Your Cart - BookNest{% endblock %}
+
+{% block content %}
+  <main class="container main-content page-main">
+    <div class="page-heading">
+      <div>
+        <span class="page-eyebrow">Shopping Cart</span>
+        <h2 class="page-title">Your Cart</h2>
+        <p class="page-subtitle">Review your books, update quantities, and proceed to demo checkout.</p>
+      </div>
+      <a href="{{ url_for('main.index') }}#catalog-section" class="btn btn-secondary">Continue Shopping</a>
+    </div>
+
+    <div id="cart-notification" class="notification-banner hidden" role="alert" aria-live="polite"></div>
+
+    <div id="cart-loading" class="loading-panel" role="status">
+      <span class="btn-spinner"></span>
+      <span>Loading your cart...</span>
+    </div>
+
+    <div id="cart-empty" class="empty-state card-empty hidden">
+      <div class="empty-icon-wrap">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <circle cx="9" cy="21" r="1"></circle>
+          <circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+      </div>
+      <h3 class="empty-title">Your cart is empty</h3>
+      <p class="empty-subtitle">Browse the BookNest collection and add a few titles to get started.</p>
+      <a href="{{ url_for('main.index') }}#catalog-section" class="btn btn-primary">Browse Books</a>
+    </div>
+
+    <div id="cart-content" class="cart-layout hidden">
+      <section class="cart-items-panel" aria-label="Cart items">
+        <div id="cart-items"></div>
+        <div class="cart-items-footer">
+          <button type="button" id="clear-cart-btn" class="btn btn-ghost">Clear Cart</button>
+        </div>
+      </section>
+
+      <aside class="cart-summary" aria-label="Order summary">
+        <h3 class="summary-title">Order Summary</h3>
+        <div class="summary-row">
+          <span>Items</span>
+          <span id="summary-count">0</span>
+        </div>
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span id="summary-subtotal">$0.00</span>
+        </div>
+        <div class="summary-row summary-row-muted">
+          <span>Shipping</span>
+          <span>Free</span>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-row summary-total">
+          <span>Total</span>
+          <span id="summary-total">$0.00</span>
+        </div>
+        <p class="summary-note">Taxes and shipping are not calculated in this demo.</p>
+        <a href="{{ url_for('main.checkout_page') }}" class="btn btn-primary btn-full" id="checkout-link">Proceed to Checkout</a>
+        <p class="demo-note">Demo checkout only. No real payment will be charged.</p>
+      </aside>
+    </div>
+  </main>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', filename='cart.js') }}"></script>
+{% endblock %}

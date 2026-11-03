@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}BookNest - Online Bookstore{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="site-header">
+    <div class="container nav-container">
+      <div class="brand-group">
+        <a href="{{ url_for('main.index') }}" class="brand-link" aria-label="BookNest Home">
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <!-- ======================================================== -->
+          <!-- CI/CD DEMO TARGET: Main Application Heading              -->
+          <!-- ======================================================== -->
+          <h1 class="brand-title">BookNest</h1>
+        </a>
+      </div>
+
+      <!-- Desktop Navigation Links -->
+      {% set home_href = '#hero' if request.endpoint == 'main.index' else url_for('main.index') + '#hero' %}
+      {% set explore_href = '#catalog-section' if request.endpoint == 'main.index' else url_for('main.index') + '#catalog-section' %}
+      <nav class="nav-links" aria-label="Primary Navigation">
+        <a href="{{ home_href }}" class="nav-link" id="nav-home">Home</a>
+        <a href="{{ explore_href }}" class="nav-link" id="nav-explore">Explore Books</a>
+        <a href="{{ url_for('main.cart_page') }}" class="nav-link nav-cart-link" id="nav-cart">
+          Cart
+          <span class="cart-badge{% if not cart_count %} hidden{% endif %}" id="nav-cart-count">{{ cart_count }}</span>
+        </a>
+        <a href="{{ url_for('main.orders_page') }}" class="nav-link" id="nav-orders">My Orders</a>
+        <button type="button" class="nav-link nav-btn-link" id="nav-about">About</button>
+      </nav>
+
+      <!-- Action Button & Mobile Menu Toggle -->
+      <div class="nav-actions">
+        {% block nav_extra %}{% endblock %}
+
+        <button type="button" class="mobile-toggle" id="mobile-toggle-btn" aria-label="Toggle Navigation Menu" aria-expanded="false">
+          <svg class="hamburger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Dropdown Menu -->
+    <div class="mobile-menu hidden" id="mobile-menu">
+      <div class="container mobile-menu-content">
+        <a href="{{ home_href }}" class="mobile-nav-link" id="mobile-nav-home">Home</a>
+        <a href="{{ explore_href }}" class="mobile-nav-link" id="mobile-nav-explore">Explore Books</a>
+        <a href="{{ url_for('main.cart_page') }}" class="mobile-nav-link mobile-cart-link" id="mobile-nav-cart">
+          Cart
+          <span class="cart-badge{% if not cart_count %} hidden{% endif %}" id="mobile-nav-cart-count">{{ cart_count }}</span>
+        </a>
+        <a href="{{ url_for('main.orders_page') }}" class="mobile-nav-link" id="mobile-nav-orders">My Orders</a>
+        <button type="button" class="mobile-nav-link mobile-btn-link" id="mobile-nav-about">About</button>
+        {% block mobile_nav_extra %}{% endblock %}
+      </div>
+    </div>
+  </header>
+
+  {% block content %}{% endblock %}
+
+  <!-- About Modal -->
+  <div id="about-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="about-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="about-modal-title" class="modal-title">About BookNest</h3>
+        <button type="button" id="close-about-modal-btn" class="modal-close-btn" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body about-body">
+        <p><strong>BookNest</strong> is a lightweight, cloud-native online bookstore built with Flask.</p>
+        <ul class="about-feature-list">
+          <li><strong>Architecture:</strong> Python 3.12, Flask, Gunicorn WSGI.</li>
+          <li><strong>Frontend:</strong> Clean HTML5, CSS3, and vanilla JavaScript without heavy frameworks.</li>
+          <li><strong>Demo Payments:</strong> Checkout is simulated only. No card details are collected and no real money is charged.</li>
+          <li><strong>Cloud Ready:</strong> Native health check endpoint (<code>/health</code>) for Kubernetes probes, Docker containerized, and GitOps ready.</li>
+        </ul>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="dismiss-about-btn" class="btn btn-primary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-left">
+        <div class="footer-logo">
+          <svg class="footer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <span class="footer-brand-name">BookNest</span>
+        </div>
+        <p class="footer-text">&copy; 2026 BookNest. Professional Online Bookstore.</p>
+      </div>
+      <div class="footer-right">
+        <span class="version-badge">v{{ app_version }}</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='site.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

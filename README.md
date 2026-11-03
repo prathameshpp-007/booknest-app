@@ -11,8 +11,11 @@ The application is container-ready and stateless, storing catalog records in mem
 - **Live Search & Filter:** Filter books instantaneously by title or author keywords alongside category dropdown filtering.
 - **Add New Books:** Add books with client-side and server-side validation (title, author, category, price) and immediate catalog update.
 - **Delete Books:** Remove books dynamically with interactive confirmation dialogues.
+- **Buy Now & Add to Cart:** Purchase actions on every book card with live cart-count badges.
+- **Shopping Cart:** Add, update quantities, remove items, and see live subtotal/total calculations.
+- **Demo Checkout:** Collects customer name, email, phone, and address with client/server validation. Orders are clearly marked unpaid and simulated; no card or CVV data is ever requested or stored.
+- **Persistent Orders:** Unique order IDs, file-backed order history, and confirmation pages using the existing JSON storage approach. A Razorpay integration can be added later without changing the order contracts.
 - **Cloud-Native & Container-Ready:** Built-in `/health` endpoint designed for Kubernetes liveness and readiness probes.
-- **Stateless & In-Memory:** Fast startup, seeded from JSON, with no external database dependencies.
 - **Clean Responsive UI:** Pure HTML5, CSS3, and vanilla JavaScript without external JS frameworks or frontend build tooling.
 
 ---
@@ -25,13 +28,25 @@ booknest-app/
 │   ├── __init__.py        # Flask application factory
 │   ├── routes.py          # API and web route handlers
 │   ├── catalog.py         # Thread-safe in-memory book catalog
+│   ├── cart.py            # Session cart helpers and pricing
+│   ├── orders.py          # Thread-safe, file-backed order store
 │   ├── templates/
-│   │   └── index.html     # Application HTML template (contains brand heading)
+│   │   ├── base.html      # Shared header, navigation, footer
+│   │   ├── index.html     # Catalog home page
+│   │   ├── cart.html      # Shopping cart page
+│   │   ├── checkout.html  # Demo checkout page
+│   │   ├── orders.html    # Order history page
+│   │   ├── order_confirmation.html
+│   │   └── order_not_found.html
 │   └── static/
 │       ├── style.css      # Modern responsive styling
-│       └── app.js         # Frontend interactions and API integrations
+│       ├── app.js         # Catalog interactions
+│       ├── site.js        # Shared navigation/dialog behaviour
+│       ├── cart.js        # Cart page logic
+│       └── checkout.js    # Checkout validation and submission
 ├── data/
-│   └── books.json         # Seed catalog (10 sample books across 5 categories)
+│   ├── books.json         # Seed catalog (10 sample books across 5 categories)
+│   └── orders.json        # Runtime order history (created automatically)
 ├── tests/
 │   ├── __init__.py
 │   └── test_app.py        # Pytest test suite
@@ -50,11 +65,28 @@ booknest-app/
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/` | Web application home page |
+| `GET` | `/cart` | Shopping cart page |
+| `GET` | `/checkout` | Demo checkout page |
+| `GET` | `/orders` | Order history page |
+| `GET` | `/orders/<order_id>` | Order confirmation / detail page |
 | `GET` | `/health` | Health check endpoint for container probes (returns `{"status": "ok"}`) |
 | `GET` | `/api/books` | Returns books, optionally filtered by `?q=<term>` and `?category=<category>` |
 | `GET` | `/api/categories`| Returns all unique book categories |
 | `POST` | `/api/books` | Adds a new book (JSON body with `title`, `author`, `category`, `price`) |
 | `DELETE` | `/api/books/<id>`| Deletes a book by ID (returns 404 if not found) |
+| `GET` | `/api/cart` | Returns cart line items, subtotal, total, and item count |
+| `POST` | `/api/cart` | Adds a book (`book_id`, optional `quantity`) to the cart |
+| `PATCH` | `/api/cart/<book_id>` | Updates a cart item quantity |
+| `DELETE` | `/api/cart/<book_id>` | Removes one book from the cart |
+| `DELETE` | `/api/cart` | Clears the cart |
+| `POST` | `/api/checkout` | Validates customer details and creates an unpaid demo order |
+| `GET` | `/api/orders` | Returns persisted order history (newest first) |
+| `GET` | `/api/orders/<order_id>` | Returns a single order |
+
+> **Payments:** Checkout is intentionally a demo simulation. Orders are stored with
+> `status: "unpaid"` and `payment.status: "simulated"`. No card number, CVV, or other
+> sensitive payment data is collected. The order API is structured so a future Razorpay
+> payment step can be inserted before order creation.
 
 ---
 
@@ -112,6 +144,11 @@ The test suite covers:
 - Search by keyword (`q`) and category (`category`)
 - Adding books with valid and invalid payloads
 - Deleting existing and non-existent books
+- Cart add, increment, quantity update, removal, and clear operations
+- Buy Now flow (add to cart + checkout navigation)
+- Checkout validation (required fields, email, phone) and order creation
+- Unique order IDs, order history, confirmation page, and cross-restart persistence
+- Cart handling when a book is deleted from the catalog
 
 ---
 

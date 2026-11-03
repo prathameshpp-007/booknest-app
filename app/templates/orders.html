@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}My Orders - BookNest{% endblock %}
+
+{% block content %}
+  <main class="container main-content page-main">
+    <div class="page-heading">
+      <div>
+        <span class="page-eyebrow">Order History</span>
+        <h2 class="page-title">My Orders</h2>
+        <p class="page-subtitle">Every demo order placed from this BookNest instance is stored below.</p>
+      </div>
+      <a href="{{ url_for('main.index') }}#catalog-section" class="btn btn-secondary">Continue Shopping</a>
+    </div>
+
+    {% if orders %}
+      <div class="orders-list">
+        {% for order in orders %}
+          <article class="order-card">
+            <div class="order-card-header">
+              <div>
+                <span class="order-id">{{ order.order_id }}</span>
+                <p class="order-date">{{ order.created_at|datetime }}</p>
+              </div>
+              <span class="status-badge status-unpaid">Unpaid &middot; Demo</span>
+            </div>
+
+            <div class="order-card-body">
+              <div class="order-meta">
+                <div>
+                  <span class="order-meta-label">Customer</span>
+                  <span class="order-meta-value">{{ order.customer.name }}</span>
+                </div>
+                <div>
+                  <span class="order-meta-label">Books</span>
+                  <span class="order-meta-value">{{ order['items']|sum(attribute='quantity') }} item(s)</span>
+                </div>
+                <div>
+                  <span class="order-meta-label">Total</span>
+                  <span class="order-meta-value">{{ order.total|currency }}</span>
+                </div>
+              </div>
+
+              <div class="order-card-actions">
+                <a href="{{ url_for('main.order_detail_page', order_id=order.order_id) }}" class="btn btn-primary">View Order</a>
+              </div>
+            </div>
+
+            <div class="order-card-items">
+              {% for item in order['items'] %}
+                <span class="order-item-chip">{{ item.title }} &times; {{ item.quantity }}</span>
+              {% endfor %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state card-empty">
+        <div class="empty-icon-wrap">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+        </div>
+        <h3 class="empty-title">No orders yet</h3>
+        <p class="empty-subtitle">When you complete a demo checkout, your order confirmation will appear here.</p>
+        <a href="{{ url_for('main.index') }}#catalog-section" class="btn btn-primary">Start Shopping</a>
+      </div>
+    {% endif %}
+  </main>
+{% endblock %}

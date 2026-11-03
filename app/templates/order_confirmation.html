@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Order {{ order.order_id }} - BookNest{% endblock %}
+
+{% block content %}
+  <main class="container main-content page-main">
+    {% if is_confirmation %}
+      <div class="confirmation-banner">
+        <div class="confirmation-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h2 class="confirmation-title">Thank you! Your demo order is confirmed.</h2>
+          <p class="confirmation-subtitle">This is a simulated order. No real payment was charged.</p>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="page-heading">
+      <div>
+        <span class="page-eyebrow">Order Details</span>
+        <h2 class="page-title">{{ order.order_id }}</h2>
+        <p class="page-subtitle">Placed {{ order.created_at|datetime }}</p>
+      </div>
+      <a href="{{ url_for('main.orders_page') }}" class="btn btn-secondary">Back to My Orders</a>
+    </div>
+
+    <div class="order-detail-layout">
+      <section class="order-detail-card">
+        <div class="order-detail-top">
+          <span class="status-badge status-unpaid">Unpaid &middot; Demo</span>
+          <span class="order-detail-total">Total {{ order.total|currency }}</span>
+        </div>
+
+        <h3 class="panel-title">Books</h3>
+        <div class="order-lines">
+          {% for item in order['items'] %}
+            <div class="order-line">
+              <div>
+                <span class="order-line-title">{{ item.title }}</span>
+                <span class="order-line-author">by {{ item.author }}</span>
+                <span class="order-line-meta">{{ item.category }} &middot; {{ item.price|currency }} &times; {{ item.quantity }}</span>
+              </div>
+              <span class="order-line-total">{{ item.line_total|currency }}</span>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="order-totals">
+          <div class="summary-row">
+            <span>Subtotal</span>
+            <span>{{ order.subtotal|currency }}</span>
+          </div>
+          <div class="summary-row summary-row-muted">
+            <span>Shipping</span>
+            <span>Free</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-row summary-total">
+            <span>Total</span>
+            <span>{{ order.total|currency }}</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="order-detail-side">
+        <section class="order-detail-card">
+          <h3 class="panel-title">Delivery Details</h3>
+          <dl class="detail-list">
+            <dt>Name</dt>
+            <dd>{{ order.customer.name }}</dd>
+            <dt>Email</dt>
+            <dd>{{ order.customer.email }}</dd>
+            <dt>Phone</dt>
+            <dd>{{ order.customer.phone }}</dd>
+            <dt>Address</dt>
+            <dd>{{ order.customer.address }}</dd>
+          </dl>
+        </section>
+
+        <section class="order-detail-card payment-card">
+          <h3 class="panel-title">Payment</h3>
+          <p class="payment-status">Status: <strong>Unpaid</strong> (demo / simulated)</p>
+          <p class="payment-note">{{ order.payment.label }}. No card numbers, CVV, or other sensitive payment details are collected or stored.</p>
+        </section>
+      </aside>
+    </div>
+
+    <div class="page-actions">
+      <a href="{{ url_for('main.index') }}#catalog-section" class="btn btn-primary">Continue Shopping</a>
+      <a href="{{ url_for('main.orders_page') }}" class="btn btn-secondary">View All Orders</a>
+    </div>
+  </main>
+{% endblock %}

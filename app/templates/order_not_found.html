@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Order Not Found - BookNest{% endblock %}
+
+{% block content %}
+  <main class="container main-content page-main">
+    <div class="empty-state card-empty">
+      <div class="empty-icon-wrap">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <h3 class="empty-title">Order not found</h3>
+      <p class="empty-subtitle">We could not find an order with ID <strong>{{ order_id }}</strong>. It may have been removed or the link is incorrect.</p>
+      <a href="{{ url_for('main.orders_page') }}" class="btn btn-primary">View My Orders</a>
+    </div>
+  </main>
+{% endblock %}
