@@ -1,3 +1,4 @@
+
 name: BookNest CI/CD
 
 on:
@@ -5,19 +6,22 @@ on:
     branches:
       - main
     paths-ignore:
-      - 'k8s/**'
       - 'README.md'
+      - 'k8s/**'
+      - '.github/workflows/**'
+
   pull_request:
     branches:
       - main
 
 permissions:
-  contents: write
+  contents: read
   packages: write
 
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,13 +45,12 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
+    env:
+      IMAGE_NAME: ghcr.io/prathameshpp-007/booknest-app
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set lowercase image name
-        run: |
-          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}/booknest-app" >> "$GITHUB_ENV"
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -65,21 +68,31 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/booknest-app:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/booknest-app:latest
+            ghcr.io/prathameshpp-007/booknest-app:${{ github.sha }}
+            ghcr.io/prathameshpp-007/booknest-app:latest
+
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: prathameshpp-007/booknest-gitops
+          token: ${{ secrets.GITOPS_TOKEN }}
+          ref: main
+          path: gitops
 
       - name: Update Kubernetes image
         env:
-          IMAGE: ${{ env.IMAGE_NAME }}
           TAG: ${{ github.sha }}
         run: |
-          sed -i "s|image: .*|image: ${IMAGE}:${TAG}|" k8s/deployment.yaml
+          sed -i "s|image: .*|image: ${IMAGE_NAME}:${TAG}|" gitops/k8s/deployment.yaml
+
+          cd gitops
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add k8s/deployment.yaml
+
           if ! git diff --cached --quiet; then
             git commit -m "chore: update BookNest image to ${TAG}"
-            git push
+            git push origin main
           fi
